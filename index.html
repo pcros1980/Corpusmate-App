@@ -1170,37 +1170,95 @@ const updateBadge = () => {
 };
 
 // ── CORPUS LOADING ────────────────────────────────────────────────────────
+// ── INDEXEDDB CACHE ───────────────────────────────────────────────────────
+const DB_NAME    = 'corpusmate-cache';
+const DB_VERSION = 1;
+const DB_STORE   = 'corpora';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function cacheGet(db, key) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(DB_STORE, 'readonly');
+    const req = tx.objectStore(DB_STORE).get(key);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function cachePut(db, key, value) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(DB_STORE, 'readwrite');
+    const req = tx.objectStore(DB_STORE).put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror   = e  => reject(e.target.error);
+  });
+}
+
+// ── LOAD ONE CORPUS (cache-aware) ─────────────────────────────────────────
+async function loadOne(db, key, fname, onDone) {
+  const cacheKey = 'chunks:' + fname;
+  try {
+    // Try cache first
+    const cached = await cacheGet(db, cacheKey);
+    if (cached) {
+      corpusChunks[key] = cached;
+      allChunks.push(...cached);
+      onDone(true);
+      return;
+    }
+    // Fetch from backend proxy
+    const res = await fetch(BACKEND_URL + '/corpus/' + fname);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const raw    = await res.text();
+    const sents  = parseVert(raw);
+    const chunks = sentencesToChunks(sents);
+    corpusChunks[key] = chunks;
+    allChunks.push(...chunks);
+    // Save to cache silently
+    cachePut(db, cacheKey, chunks).catch(() => {});
+    onDone(true);
+  } catch(e) {
+    console.warn("Could not load", fname, e);
+    onDone(false);
+  }
+}
+
 async function loadCorpus() {
   setStatus('loading', 'Loading corpora…');
   corpusChunks = {}; allChunks = [];
-  const keys   = Object.keys(CORPUS_FILES);
-  let loaded   = 0;
+  const keys  = Object.keys(CORPUS_FILES);
+  let loaded  = 0;
+  let settled = 0;
 
-  for (let i = 0; i < keys.length; i++) {
-    const key   = keys[i];
-    const fname = CORPUS_FILES[key];
-    try {
-      const res  = await fetch(BACKEND_URL + '/corpus/' + fname);
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const raw      = await res.text();
-      const sents    = parseVert(raw);
-      const chunks   = sentencesToChunks(sents);
-      corpusChunks[key] = chunks;
-      allChunks.push(...chunks);
-      loaded++;
-    } catch(e) {
-      console.warn("Could not load", fname, e);
-    }
-    setBar(Math.round(((i + 1) / keys.length) * 100));
-    document.getElementById('loader-count').textContent  = loaded + '/' + keys.length;
+  // Open IndexedDB (fall back gracefully if unavailable)
+  let db = null;
+  try { db = await openDB(); } catch(e) { console.warn('IndexedDB unavailable', e); }
+
+  const updateProgress = (success) => {
+    if (success) loaded++;
+    settled++;
+    setBar(Math.round((settled / keys.length) * 100));
+    document.getElementById('loader-count').textContent   = loaded + '/' + keys.length;
     document.getElementById('loader-count').style.display = 'inline';
-  }
+  };
+
+  // Fetch all corpora in parallel
+  await Promise.all(keys.map(key => loadOne(db, key, CORPUS_FILES[key], updateProgress)));
 
   document.getElementById('loader-dots').style.display = 'none';
 
   if (!loaded) { setStatus('error', 'Corpora failed to load'); return; }
 
-  setStatus('ready', loaded + ' corpora ready');
+  const fromCache = db ? ' (cached)' : '';
+  setStatus('ready', loaded + ' corpora ready' + fromCache);
   setBar(100);
 
   try {
@@ -1211,9 +1269,9 @@ async function loadCorpus() {
     if (data.wait_seconds > 0) { showLimitCard(data.wait_seconds); return; }
   } catch(e) {}
 
-  document.getElementById('user-input').disabled      = false;
-  document.getElementById('send-btn').disabled        = false;
-  document.getElementById('user-input').placeholder   = 'Ask about language across corpora…';
+  document.getElementById('user-input').disabled    = false;
+  document.getElementById('send-btn').disabled      = false;
+  document.getElementById('user-input').placeholder = 'Ask about language across corpora…';
   document.getElementById('user-input').focus();
 }
 
