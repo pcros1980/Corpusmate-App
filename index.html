@@ -761,38 +761,38 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 
     <div class="nav-section">
       <div class="nav-group-label">Academic</div>
-      <div class="nav-item" onclick="setTopic(this,'Academic (BAWE)','BAWE')" data-file="BAWE">
+      <div class="nav-item" onclick="setTopic(this,'Academic Writing (BAWE)','BAWE')" data-file="BAWE">
         <div class="nav-item-dot" style="background:#6366f1"></div>
         <span class="nav-item-text">Academic Writing</span>
         <span class="nav-item-sub">BAWE</span>
       </div>
-      <div class="nav-item" onclick="setTopic(this,'Scientific (Elsevier)','Elsevier')" data-file="Elsevier">
+      <div class="nav-item" onclick="setTopic(this,'Scientific Research (Elsevier)','Elsevier')" data-file="Elsevier">
         <div class="nav-item-dot" style="background:#8b5cf6"></div>
-        <span class="nav-item-text">Scientific Journals</span>
+        <span class="nav-item-text">Scientific Research</span>
         <span class="nav-item-sub">Elsevier</span>
-      </div>
-      <div class="nav-item" onclick="setTopic(this,'Reference (Wiktionary)','wiktionary')" data-file="wiktionary">
-        <div class="nav-item-dot" style="background:#a78bfa"></div>
-        <span class="nav-item-text">Reference / Definitions</span>
-        <span class="nav-item-sub">Wiktionary</span>
       </div>
     </div>
 
     <div class="nav-section">
-      <div class="nav-group-label">Media &amp; Speech</div>
-      <div class="nav-item" onclick="setTopic(this,'News (BBC)','BBC')" data-file="BBC">
+      <div class="nav-group-label">Spoken &amp; Media</div>
+      <div class="nav-item" onclick="setTopic(this,'Academic Speech (BASE)','BASE')" data-file="BASE">
         <div class="nav-item-dot" style="background:#e8a020"></div>
-        <span class="nav-item-text">News</span>
-        <span class="nav-item-sub">BBC</span>
+        <span class="nav-item-text">Academic Speech</span>
+        <span class="nav-item-sub">BASE</span>
       </div>
-      <div class="nav-item" onclick="setTopic(this,'Talks (TED)','TED')" data-file="TED">
+      <div class="nav-item" onclick="setTopic(this,'TED Talks','TED')" data-file="TED">
         <div class="nav-item-dot" style="background:#f59e0b"></div>
-        <span class="nav-item-text">Public Talks</span>
+        <span class="nav-item-text">TED Talks</span>
         <span class="nav-item-sub">TED</span>
       </div>
-      <div class="nav-item" onclick="setTopic(this,'Subtitles','subtitles')" data-file="subtitles">
+      <div class="nav-item" onclick="setTopic(this,'News (BBC Teach)','BBC')" data-file="BBC">
         <div class="nav-item-dot" style="background:#fbbf24"></div>
-        <span class="nav-item-text">Spoken / Subtitles</span>
+        <span class="nav-item-text">News</span>
+        <span class="nav-item-sub">BBC Teach</span>
+      </div>
+      <div class="nav-item" onclick="setTopic(this,'Movie Subtitles','subtitles')" data-file="subtitles">
+        <div class="nav-item-dot" style="background:#fcd34d"></div>
+        <span class="nav-item-text">Movie Subtitles</span>
         <span class="nav-item-sub">Subtitles</span>
       </div>
     </div>
@@ -925,57 +925,57 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#8b5cf6"></div>
       <div class="corpus-card-body">
-        <div class="corpus-card-title">Elsevier</div>
-        <div class="corpus-card-desc">Published scientific journal articles from Elsevier's catalogue.</div>
-      </div>
-    </div>
-    <div class="corpus-card">
-      <div class="corpus-card-dot" style="background:#a78bfa"></div>
-      <div class="corpus-card-body">
-        <div class="corpus-card-title">Wiktionary</div>
-        <div class="corpus-card-desc">Encyclopaedic reference and definition text.</div>
+        <div class="corpus-card-title">Elsevier — Science Research Corpus</div>
+        <div class="corpus-card-desc">Published scientific journal articles — formal research writing across STEM fields.</div>
       </div>
     </div>
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#e8a020"></div>
       <div class="corpus-card-body">
-        <div class="corpus-card-title">BBC News</div>
-        <div class="corpus-card-desc">News articles from BBC online — journalistic register.</div>
+        <div class="corpus-card-title">BASE — British Academic Spoken English</div>
+        <div class="corpus-card-desc">Transcripts of university lectures and seminars — academic spoken register.</div>
       </div>
     </div>
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#f59e0b"></div>
       <div class="corpus-card-body">
         <div class="corpus-card-title">TED Talks</div>
-        <div class="corpus-card-desc">Transcripts of TED conference presentations — planned but conversational speech.</div>
+        <div class="corpus-card-desc">Transcripts of TED conference presentations — planned but conversational public speech.</div>
       </div>
     </div>
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#fbbf24"></div>
       <div class="corpus-card-body">
-        <div class="corpus-card-title">Subtitles</div>
-        <div class="corpus-card-desc">Film and TV subtitle text — informal spoken language.</div>
+        <div class="corpus-card-title">BBC Teach</div>
+        <div class="corpus-card-desc">Educational content from the BBC Teach website — accessible journalistic register.</div>
+      </div>
+    </div>
+    <div class="corpus-card">
+      <div class="corpus-card-dot" style="background:#fcd34d"></div>
+      <div class="corpus-card-body">
+        <div class="corpus-card-title">Movie Subtitles</div>
+        <div class="corpus-card-desc">Film and TV subtitle text — informal, spontaneous spoken language.</div>
       </div>
     </div>
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#10b981"></div>
       <div class="corpus-card-body">
-        <div class="corpus-card-title">Novels</div>
-        <div class="corpus-card-desc">Literary fiction — narrative prose and dialogue.</div>
+        <div class="corpus-card-title">Novels — Literary Fiction Corpus</div>
+        <div class="corpus-card-desc">Literary fiction — narrative prose, description, and dialogue.</div>
       </div>
     </div>
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#34d399"></div>
       <div class="corpus-card-body">
-        <div class="corpus-card-title">Games</div>
-        <div class="corpus-card-desc">Video game scripts and interactive dialogue.</div>
+        <div class="corpus-card-title">Games — Video Games Corpus</div>
+        <div class="corpus-card-desc">Video game scripts and interactive dialogue — a distinctive digital register.</div>
       </div>
     </div>
     <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#6ee7b7"></div>
       <div class="corpus-card-body">
-        <div class="corpus-card-title">Simple Wikipedia</div>
-        <div class="corpus-card-desc">Plain-language encyclopaedic entries — simplified register.</div>
+        <div class="corpus-card-title">Simple English Wikipedia</div>
+        <div class="corpus-card-desc">Plain-language encyclopaedic entries written for clarity and accessibility.</div>
       </div>
     </div>
 
@@ -1034,24 +1034,101 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────
 const BACKEND_URL  = 'https://uqpcros1-corpusmate.hf.space';
-const GITHUB_BASE  = 'https://raw.githubusercontent.com/pcros1980/corpus-mate/main/data/';
+const GITHUB_BASE  = 'https://raw.githubusercontent.com/pcros1980/Corpusmate-App/main/';
 // Replace with your Formspree endpoint
 const FORMSPREE    = 'https://formspree.io/f/YOUR-FORMSPREE-ID';
 const MAX_CHUNKS   = 40;
 
-// Map sidebar keys to the folder names in the repo's data directory
-// Adjust these filenames to match what's actually in pcros1980/corpus-mate/data/
+// .vert filenames in the root of pcros1980/Corpusmate-App
 const CORPUS_FILES = {
-  'BAWE':       'BAWE.txt',
-  'BBC':        'BBC.txt',
-  'Elsevier':   'Elsevier.txt',
-  'Games':      'Games.txt',
-  'Novels':     'Novels.txt',
-  'Simplewiki': 'Simplewiki.txt',
-  'subtitles':  'subtitles.txt',
-  'TED':        'TED.txt',
-  'wiktionary': 'wiktionary.txt',
+  'BAWE':       'bawe.vert',
+  'BBC':        'bbc.vert',
+  'Elsevier':   'elsevier.vert',
+  'Games':      'games.vert',
+  'Novels':     'novels.vert',
+  'Simplewiki': 'simplewiki.vert',
+  'subtitles':  'subtitles.vert',
+  'TED':        'ted.vert',
+  'BASE':       'base.vert',
 };
+
+// ── VERT PARSER ───────────────────────────────────────────────────────────
+// CWB vertical format: one token per line (word TAB pos TAB lemma),
+// <s>…</s> sentence tags, <g/> glue (no space), XML doc tags.
+// Returns an array of plain-text sentence strings.
+function parseVert(raw) {
+  const lines     = raw.split('\n');
+  const sentences = [];
+  let tokens      = [];   // words collected for current sentence
+  let glueNext    = false; // true = no space before next word
+
+  for (const line of lines) {
+    const t = line.trim();
+
+    if (!t || t === '<s>' || t.startsWith('<doc') || t.startsWith('</doc')) {
+      continue;
+    }
+
+    if (t === '</s>') {
+      if (tokens.length > 0) {
+        sentences.push(tokens.join(''));
+        tokens = [];
+        glueNext = false;
+      }
+      continue;
+    }
+
+    if (t === '<g/>') {
+      glueNext = true;
+      continue;
+    }
+
+    // Skip any other XML tags (e.g. <text>, </text>, <head>…)
+    if (t.startsWith('<')) {
+      continue;
+    }
+
+    // Token line: word TAB pos TAB lemma — take only the first column
+    const word = t.split('\t')[0];
+    if (!word) continue;
+
+    if (glueNext || tokens.length === 0) {
+      tokens.push(word);
+    } else {
+      tokens.push(' ' + word);
+    }
+    glueNext = false;
+  }
+
+  // Flush any trailing sentence without </s>
+  if (tokens.length > 0) sentences.push(tokens.join(''));
+
+  return sentences;
+}
+
+// Pack sentences into ~1800-char chunks without cutting mid-sentence
+function sentencesToChunks(sentences, chunkSize = 1800) {
+  const chunks = [];
+  let current  = '';
+  for (const s of sentences) {
+    if (!s.trim()) continue;
+    const candidate = current ? current + ' ' + s : s;
+    if (candidate.length <= chunkSize) {
+      current = candidate;
+    } else {
+      if (current) chunks.push(current);
+      // If a single sentence is longer than chunkSize, split it hard
+      if (s.length > chunkSize) {
+        for (let i = 0; i < s.length; i += chunkSize) chunks.push(s.slice(i, i + chunkSize));
+        current = '';
+      } else {
+        current = s;
+      }
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
 
 let corpusChunks   = {};   // key → array of chunks
 let allChunks      = [];
@@ -1103,18 +1180,16 @@ async function loadCorpus() {
     const key   = keys[i];
     const fname = CORPUS_FILES[key];
     try {
-      const res  = await fetch(GITHUB_BASE + encodeURIComponent(fname));
-      if (!res.ok) throw new Error();
-      const text = await res.text();
-      corpusChunks[key] = [];
-      for (let j = 0; j < text.length; j += 1800) {
-        const chunk = text.slice(j, j + 1800);
-        corpusChunks[key].push(chunk);
-        allChunks.push(chunk);
-      }
+      const res  = await fetch(GITHUB_BASE + fname);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const raw      = await res.text();
+      const sents    = parseVert(raw);
+      const chunks   = sentencesToChunks(sents);
+      corpusChunks[key] = chunks;
+      allChunks.push(...chunks);
       loaded++;
     } catch(e) {
-      console.warn('Could not load', fname, e);
+      console.warn("Could not load", fname, e);
     }
     setBar(Math.round(((i + 1) / keys.length) * 100));
     document.getElementById('loader-count').textContent  = loaded + '/' + keys.length;
