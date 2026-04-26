@@ -1180,7 +1180,7 @@ async function loadCorpus() {
     const key   = keys[i];
     const fname = CORPUS_FILES[key];
     try {
-      const res  = await fetch(GITHUB_BASE + fname);
+      const res  = await fetch(GITHUB_BASE + fname + '?download=true');
       if (!res.ok) throw new Error("HTTP " + res.status);
       const raw      = await res.text();
       const sents    = parseVert(raw);
