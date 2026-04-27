@@ -9,7 +9,7 @@
 <title>CorpusMate — Language Discovery Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <!-- Replace with your own Umami website ID -->
-<script defer src="https://cloud.umami.is/script.js" data-website-id="ff000970-168f-4101-aa22-fbcb441c8db1"></script>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="YOUR-UMAMI-WEBSITE-ID"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,6 +40,8 @@
 html, body { height: 100%; background: var(--slate); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; }
 
 .app { display: flex; height: 100vh; overflow: hidden; flex-direction: column; }
+.chat-app { display: flex; flex: 1; overflow: hidden; }
+.chat-app.hidden { display: none; }
 
 /* ── TOP NAV ── */
 .top-nav {
@@ -669,8 +671,200 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 }
 @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
-/* Mobile */
-@media (max-width: 900px) { .right-panel { display: none; } }
+/* ── SEARCH PANEL ── */
+.search-panel {
+  display: none; flex: 1; flex-direction: column; overflow: hidden;
+  background: var(--slate);
+}
+.search-panel.active { display: flex; }
+
+.search-topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px 0;
+  flex-shrink: 0;
+}
+
+.search-input-row {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
+}
+
+.search-box {
+  flex: 1; display: flex; align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--slate);
+  padding: 0 14px;
+  transition: border-color 0.15s;
+}
+.search-box:focus-within { border-color: var(--amber); background: #fff; }
+.search-box svg { width: 16px; height: 16px; fill: var(--text-3); flex-shrink: 0; margin-right: 8px; }
+.search-box input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem; color: var(--text);
+  padding: 9px 0;
+}
+.search-box input::placeholder { color: var(--text-3); }
+
+.search-go-btn {
+  background: var(--navy); color: #fff; border: none;
+  border-radius: var(--r-lg); padding: 9px 20px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+.search-go-btn:hover { background: var(--amber-dark); }
+.search-go-btn:disabled { background: var(--border2); cursor: not-allowed; }
+
+.search-filters {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;
+}
+
+.filter-select {
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--slate); padding: 5px 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: var(--text-2);
+  cursor: pointer; outline: none;
+}
+.filter-select:focus { border-color: var(--amber); }
+
+.filter-label {
+  font-size: 0.72rem; color: var(--text-3); font-weight: 500;
+}
+
+.search-subtabs {
+  display: flex; gap: 0; border-bottom: none;
+}
+
+.subtab {
+  padding: 8px 16px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500;
+  color: var(--text-3); cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.subtab:hover { color: var(--text-2); }
+.subtab.active { color: var(--navy); border-bottom-color: var(--amber); font-weight: 600; }
+
+/* Search results area */
+.search-results {
+  flex: 1; overflow-y: auto; padding: 20px 24px;
+}
+.search-results::-webkit-scrollbar { width: 5px; }
+.search-results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.search-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 300px; color: var(--text-3); text-align: center; gap: 12px;
+}
+.search-empty svg { width: 40px; height: 40px; fill: var(--border2); }
+.search-empty p { font-size: 0.88rem; max-width: 320px; }
+
+.search-stats {
+  font-size: 0.75rem; color: var(--text-3);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+.search-stats strong { color: var(--text-2); }
+
+/* KWIC concordance */
+.kwic-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.kwic-row { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+.kwic-row:hover { background: var(--amber-light); }
+.kwic-left { text-align: right; padding: 5px 4px 5px 8px; color: var(--text-2); width: 38%; }
+.kwic-node { text-align: center; padding: 5px 6px; font-weight: 700; color: var(--navy); white-space: nowrap; }
+.kwic-right { text-align: left; padding: 5px 8px 5px 4px; color: var(--text-2); width: 38%; }
+.kwic-meta { padding: 3px 8px; }
+.kwic-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--slate2); border-radius: 10px;
+  padding: 1px 7px; font-size: 0.62rem; color: var(--text-3);
+  margin-right: 3px;
+}
+
+/* Expanded sentence view */
+.sent-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 12px 16px;
+  margin-bottom: 8px; cursor: pointer;
+  transition: border-color 0.12s;
+}
+.sent-card:hover { border-color: var(--amber); }
+.sent-card-text { font-size: 0.88rem; color: var(--text); line-height: 1.6; margin-bottom: 6px; }
+.sent-card-text mark { background: var(--amber-light); color: var(--navy); border-radius: 3px; padding: 0 2px; }
+.sent-card-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* Collocation table */
+.coll-grid {
+  display: grid; grid-template-columns: 1fr 80px 80px;
+  gap: 0; background: #fff; border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.coll-head { background: var(--navy); color: #fff; font-size: 0.72rem; font-weight: 600;
+  padding: 8px 12px; letter-spacing: 0.04em; }
+.coll-cell { padding: 7px 12px; font-size: 0.82rem; color: var(--text-2);
+  border-bottom: 1px solid var(--border); }
+.coll-word { font-weight: 600; color: var(--text); }
+.coll-bar-wrap { grid-column: 1/-1; padding: 0 12px 10px; display: flex; align-items: center; gap: 8px; }
+.coll-bar { height: 4px; background: var(--amber); border-radius: 2px; transition: width 0.3s; }
+
+/* N-gram results */
+.ngram-list { display: flex; flex-direction: column; gap: 6px; }
+.ngram-item {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 14px;
+  display: grid; grid-template-columns: 1fr 60px;
+  gap: 8px; align-items: start;
+}
+.ngram-phrase { font-size: 0.88rem; font-weight: 600; color: var(--navy); }
+.ngram-freq { font-size: 0.75rem; color: var(--amber-dark); font-weight: 600; text-align: right; }
+.ngram-example { font-size: 0.75rem; color: var(--text-3); grid-column: 1/-1; line-height: 1.4; }
+.ngram-example mark { background: var(--amber-light); border-radius: 2px; padding: 0 2px; color: var(--navy); }
+
+/* Dispersion chart */
+.disp-section { margin-bottom: 24px; }
+.disp-section-title {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-3);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.disp-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.disp-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.disp-label { font-size: 0.78rem; color: var(--text-2); width: 180px; flex-shrink: 0; text-align: right; }
+.disp-track { flex: 1; height: 16px; background: var(--slate2); border-radius: 4px; overflow: hidden; position: relative; }
+.disp-fill { height: 100%; background: var(--amber); border-radius: 4px; transition: width 0.4s ease; min-width: 2px; }
+.disp-val { font-size: 0.72rem; color: var(--text-3); width: 70px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+/* N selector */
+.n-selector { display: flex; gap: 4px; align-items: center; }
+.n-btn {
+  width: 28px; height: 28px; border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--slate);
+  font-family: 'DM Sans', sans-serif; font-size: 0.78rem;
+  color: var(--text-2); cursor: pointer; transition: all 0.12s;
+}
+.n-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.n-btn:hover:not(.active) { border-color: var(--amber); }
+
+/* Loading spinner */
+.search-spinner {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 60px 0; color: var(--text-3); font-size: 0.85rem;
+}
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border);
+  border-top-color: var(--amber); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Index loading notice */
+.index-notice {
+  background: var(--amber-light); border: 1px solid #f0d890;
+  border-radius: var(--r-lg); padding: 12px 16px;
+  font-size: 0.82rem; color: var(--amber-dark);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px;
+}
+.index-notice svg { width: 16px; height: 16px; fill: var(--amber-dark); flex-shrink: 0; }
 @media (max-width: 640px) {
   .sidebar { position: fixed; left: -270px; top: 52px; bottom: 0; z-index: 500; transition: left 0.25s; }
   .sidebar.mobile-open { left: 0; }
@@ -713,6 +907,11 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
     Explore
   </button>
 
+  <button class="top-nav-tab" id="nav-tab-search" onclick="switchTab('search')">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    Search
+  </button>
+
   <div class="top-nav-spacer"></div>
 
   <span id="backend-status">
@@ -736,6 +935,7 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 </nav>
 
 <div class="app">
+<div class="chat-app" id="chat-app">
 <div class="body-row">
 
 <!-- SIDEBAR -->
@@ -799,11 +999,6 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 
     <div class="nav-section">
       <div class="nav-group-label">Creative &amp; Informal</div>
-      <div class="nav-item" onclick="setTopic(this,'Fiction (Novels)','Novels')" data-file="Novels">
-        <div class="nav-item-dot" style="background:#10b981"></div>
-        <span class="nav-item-text">Fiction</span>
-        <span class="nav-item-sub">Novels</span>
-      </div>
       <div class="nav-item" onclick="setTopic(this,'Games','Games')" data-file="Games">
         <div class="nav-item-dot" style="background:#34d399"></div>
         <span class="nav-item-text">Games / Interactive</span>
@@ -846,11 +1041,11 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
       </div>
       <div class="welcome-title">Discover how language really works</div>
-      <div class="welcome-sub">CorpusMate draws on nine real-world corpora — academic, news, fiction, spoken, and more — to help you explore vocabulary, grammar, and register in context.</div>
+      <div class="welcome-sub">CorpusMate draws on eight real-world corpora — academic, news, spoken, games, and more — to help you explore vocabulary, grammar, and register in context.</div>
       <div class="welcome-chips">
         <span class="welcome-chip" onclick="sendSuggestion('How does sentence length differ between BBC news and academic writing?')">How does sentence length differ between BBC and academic writing?</span>
         <span class="welcome-chip" onclick="sendSuggestion('Show me how the word \"however\" is used across different corpus types.')">How is "however" used across corpus types?</span>
-        <span class="welcome-chip" onclick="sendSuggestion('What makes TED talk language feel different from a novel?')">What makes TED talk language feel different from fiction?</span>
+        <span class="welcome-chip" onclick="sendSuggestion('What makes TED talk language feel different from subtitles?')">What makes TED talk language feel different from subtitles?</span>
         <span class="welcome-chip" onclick="sendSuggestion('Give me examples of hedging language from the academic corpus.')">Hedging language in academic writing</span>
         <span class="welcome-chip" onclick="sendSuggestion('How is the word \"challenge\" used differently in news vs. scientific writing?')">"challenge" in news vs. scientific writing</span>
         <span class="welcome-chip" onclick="sendSuggestion('What reporting verbs are common in Elsevier journal articles?')">Reporting verbs in journal articles</span>
@@ -880,7 +1075,7 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
       <div class="prompt-group-label">Vocabulary</div>
       <button class="prompt-chip" onclick="sendSuggestion('What are the most frequent collocations for \"significant\" across corpora?')">Collocations for "significant"</button>
       <button class="prompt-chip" onclick="sendSuggestion('How is the word \"impact\" used differently in academic vs. news writing?')">"impact" in academic vs. news</button>
-      <button class="prompt-chip" onclick="sendSuggestion('Show me phrasal verbs common in fiction but rare in academic writing.')">Phrasal verbs in fiction</button>
+      <button class="prompt-chip" onclick="sendSuggestion('Show me phrasal verbs common in games but rare in academic writing.')">Phrasal verbs in games</button>
     </div>
     <div class="prompt-group">
       <div class="prompt-group-label">Register &amp; style</div>
@@ -891,19 +1086,98 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
     <div class="prompt-group">
       <div class="prompt-group-label">Grammar patterns</div>
       <button class="prompt-chip" onclick="sendSuggestion('How is passive voice used differently across the corpora?')">Passive voice across corpora</button>
-      <button class="prompt-chip" onclick="sendSuggestion('Show me how sentence openers differ between news and fiction.')">Sentence openers: news vs. fiction</button>
+      <button class="prompt-chip" onclick="sendSuggestion('Show me how sentence openers differ between news and academic writing.')">Sentence openers: news vs. academic</button>
       <button class="prompt-chip" onclick="sendSuggestion('What discourse markers are most common in spoken vs. written corpora?')">Discourse markers: spoken vs. written</button>
     </div>
     <div class="prompt-group">
       <div class="prompt-group-label">Compare corpora</div>
       <button class="prompt-chip" onclick="sendSuggestion('How does the vocabulary in games differ from academic writing?')">Games vs. academic vocabulary</button>
       <button class="prompt-chip" onclick="sendSuggestion('Compare how Wikipedia and Elsevier articles explain the same concepts.')">SimpleWiki vs. Elsevier</button>
-      <button class="prompt-chip" onclick="sendSuggestion('What writing features make novels easy to read compared to journal articles?')">Novels vs. journals: readability</button>
     </div>
   </div>
 </aside>
 
-</div><!-- body-row -->
+</div><!-- body-row (chat) -->
+</div><!-- chat-app -->
+
+<!-- ── SEARCH PANEL ── -->
+<div class="search-panel" id="search-panel">
+
+  <!-- Top search bar -->
+  <div class="search-topbar">
+    <div class="search-input-row">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="search-input" placeholder="Enter a word or phrase (use * as wildcard)" onkeydown="if(event.key==='Enter') runSearch()">
+      </div>
+      <button class="search-go-btn" id="search-go-btn" onclick="runSearch()">Search</button>
+    </div>
+
+    <div class="search-filters">
+      <span class="filter-label">Corpus:</span>
+      <select class="filter-select" id="filter-corpus">
+        <option value="all">All corpora</option>
+        <option value="bawe">BAWE</option>
+        <option value="bbc-teach">BBC Teach</option>
+        <option value="elsevier">Elsevier</option>
+        <option value="games">Games</option>
+        <option value="simplewiki">SimpleWiki</option>
+        <option value="subtitles">Subtitles</option>
+        <option value="base">BASE</option>
+        <option value="ted">TED</option>
+      </select>
+
+      <span class="filter-label">Discipline:</span>
+      <select class="filter-select" id="filter-discipline">
+        <option value="all">All disciplines</option>
+        <option value="architecture">Architecture</option>
+        <option value="biology">Biology</option>
+        <option value="chemistry">Chemistry</option>
+        <option value="culture">Culture & Arts</option>
+        <option value="economics">Economics</option>
+        <option value="engineering">Engineering</option>
+        <option value="games">Games & Sport</option>
+        <option value="geography">Geography</option>
+        <option value="history">History</option>
+        <option value="language">Language & Linguistics</option>
+        <option value="law">Law</option>
+        <option value="mathematics">Mathematics</option>
+        <option value="medicine">Medicine</option>
+        <option value="movies">Film & Media</option>
+        <option value="physics">Physics</option>
+        <option value="politics">Politics</option>
+        <option value="psychology">Psychology</option>
+        <option value="society">Society & Social Science</option>
+        <option value="technology">Technology</option>
+      </select>
+
+      <span class="filter-label">Mode:</span>
+      <select class="filter-select" id="filter-mode">
+        <option value="all">Written & Spoken</option>
+        <option value="written">Written only</option>
+        <option value="spoken">Spoken only</option>
+      </select>
+    </div>
+
+    <div class="search-subtabs">
+      <button class="subtab active" id="subtab-concordance" onclick="setSubtab('concordance')">Concordance</button>
+      <button class="subtab" id="subtab-collocations" onclick="setSubtab('collocations')">Collocations</button>
+      <button class="subtab" id="subtab-ngrams" onclick="setSubtab('ngrams')">N-grams</button>
+      <button class="subtab" id="subtab-dispersion" onclick="setSubtab('dispersion')">Disciplinary Variation</button>
+    </div>
+  </div>
+
+  <!-- Results area -->
+  <div class="search-results" id="search-results">
+    <div class="search-empty" id="search-empty">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <p>Enter a word or phrase above and click Search to explore the corpora.</p>
+      <p style="font-size:0.75rem">Use <strong>*</strong> as a wildcard — e.g. <em>assess*</em> matches assessing, assessed, assessment…</p>
+    </div>
+    <div id="search-output" style="display:none"></div>
+  </div>
+
+</div><!-- search-panel -->
 </div><!-- app -->
 
 <!-- ABOUT MODAL -->
@@ -911,7 +1185,7 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
   <div class="modal">
     <button class="modal-close" onclick="closeAbout()">✕</button>
     <h2>About CorpusMate</h2>
-    <p>CorpusMate is a language discovery tool powered by nine real-world corpora. It uses AI to help you explore how language varies across genres, registers, and contexts — from academic papers to fiction, news to game dialogue.</p>
+    <p>CorpusMate is a language discovery tool powered by nine real-world corpora. It uses AI to help you explore how language varies across genres, registers, and contexts — from academic papers to news, spoken language, and game dialogue.</p>
 
     <p style="font-weight:600;font-size:0.82rem;margin-bottom:8px;color:var(--text);">The nine corpora</p>
 
@@ -957,14 +1231,6 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
         <div class="corpus-card-desc">Film and TV subtitle text — informal, spontaneous spoken language.</div>
       </div>
     </div>
-    <div class="corpus-card">
-      <div class="corpus-card-dot" style="background:#10b981"></div>
-      <div class="corpus-card-body">
-        <div class="corpus-card-title">Novels — Literary Fiction Corpus</div>
-        <div class="corpus-card-desc">Literary fiction — narrative prose, description, and dialogue.</div>
-      </div>
-    </div>
-    <div class="corpus-card">
       <div class="corpus-card-dot" style="background:#34d399"></div>
       <div class="corpus-card-body">
         <div class="corpus-card-title">Games — Video Games Corpus</div>
@@ -1045,7 +1311,6 @@ const CORPUS_FILES = {
   'BBC':        'bbc.vert',
   'Elsevier':   'elsevier.vert',
   'Games':      'games.vert',
-  'Novels':     'novels.vert',
   'Simplewiki': 'simplewiki.vert',
   'subtitles':  'subtitles.vert',
   'TED':        'ted.vert',
@@ -1558,6 +1823,273 @@ function closeMobileSidebar() {
 function switchTab(tab) {
   document.querySelectorAll('.top-nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('nav-tab-' + tab).classList.add('active');
+
+  const chatApp     = document.getElementById('chat-app');
+  const searchPanel = document.getElementById('search-panel');
+
+  if (tab === 'chat') {
+    chatApp.classList.remove('hidden');
+    searchPanel.classList.remove('active');
+  } else {
+    chatApp.classList.add('hidden');
+    searchPanel.classList.add('active');
+    // Focus search input
+    setTimeout(() => document.getElementById('search-input')?.focus(), 50);
+  }
+}
+
+// ── SEARCH STATE ──────────────────────────────────────────────────────────
+let activeSubtab  = 'concordance';
+let activeN       = 4;
+let searchRunning = false;
+let concordanceView = 'pattern'; // pattern | sentence
+
+function setSubtab(tab) {
+  activeSubtab = tab;
+  document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+  document.getElementById('subtab-' + tab).classList.add('active');
+  // Re-run search if there's a current query
+  const q = document.getElementById('search-input').value.trim();
+  if (q) runSearch();
+}
+
+// ── SEARCH RUNNER ─────────────────────────────────────────────────────────
+async function runSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q || searchRunning) return;
+
+  const corpus     = document.getElementById('filter-corpus').value;
+  const discipline = document.getElementById('filter-discipline').value;
+  const mode       = document.getElementById('filter-mode').value;
+
+  document.getElementById('search-empty').style.display  = 'none';
+  document.getElementById('search-output').style.display = 'block';
+  document.getElementById('search-output').innerHTML = `<div class="search-spinner"><div class="spinner"></div>Searching…</div>`;
+  document.getElementById('search-go-btn').disabled = true;
+  searchRunning = true;
+
+  if (window.umami) umami.track('search', { tab: activeSubtab, q });
+
+  try {
+    const params = new URLSearchParams({ q, corpus, discipline, mode });
+
+    if (activeSubtab === 'concordance') {
+      params.set('limit', '100');
+      const res  = await fetch(BACKEND_URL + '/search/concordance?' + params);
+      const data = await res.json();
+      renderConcordance(data, q);
+    } else if (activeSubtab === 'collocations') {
+      params.set('window', '3');
+      params.set('limit', '40');
+      const res  = await fetch(BACKEND_URL + '/search/collocations?' + params);
+      const data = await res.json();
+      renderCollocations(data, q);
+    } else if (activeSubtab === 'ngrams') {
+      params.set('n', activeN);
+      params.set('limit', '30');
+      const res  = await fetch(BACKEND_URL + '/search/ngrams?' + params);
+      const data = await res.json();
+      renderNgrams(data, q);
+    } else if (activeSubtab === 'dispersion') {
+      const res  = await fetch(BACKEND_URL + '/search/dispersion?' + params);
+      const data = await res.json();
+      renderDispersion(data, q);
+    }
+  } catch(e) {
+    document.getElementById('search-output').innerHTML =
+      `<div class="index-notice"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      Search failed — the backend may still be indexing. Please try again in a moment.</div>`;
+  }
+
+  searchRunning = false;
+  document.getElementById('search-go-btn').disabled = false;
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────────────────────
+function highlightNode(text, q) {
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '\\S*');
+  try {
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+  } catch(e) {
+    return text;
+  }
+}
+
+function metaBadges(item) {
+  let html = '';
+  if (item.source) html += `<span class="kwic-badge">${esc(item.source)}</span>`;
+  if (item.mode)   html += `<span class="kwic-badge">${item.mode}</span>`;
+  if (item.disciplines && item.disciplines.length)
+    item.disciplines.forEach(d => { html += `<span class="kwic-badge">${esc(d)}</span>`; });
+  return html;
+}
+
+// ── CONCORDANCE RENDERER ──────────────────────────────────────────────────
+function renderConcordance(data, q) {
+  const out = document.getElementById('search-output');
+  if (data.error) { out.innerHTML = `<div class="index-notice">${esc(data.error)}</div>`; return; }
+  if (!data.results || !data.results.length) {
+    out.innerHTML = `<div class="search-empty"><p>No results found for <strong>${esc(q)}</strong>.</p><p>Try a different spelling, a wildcard (assess*), or broaden your filters.</p></div>`;
+    return;
+  }
+
+  const viewToggle = `
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+      <span class="filter-label">View:</span>
+      <button class="n-btn ${concordanceView==='pattern'?'active':''}" onclick="setConcView('pattern')">Pattern</button>
+      <button class="n-btn ${concordanceView==='sentence'?'active':''}" onclick="setConcView('sentence')" style="width:auto;padding:0 10px">Sentence</button>
+    </div>`;
+
+  const statsHtml = `<div class="search-stats"><strong>${data.total}</strong> results for <strong>"${esc(q)}"</strong></div>`;
+
+  if (concordanceView === 'pattern') {
+    let rows = data.results.map(r => `
+      <tr class="kwic-row" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'table-row':'none'">
+        <td class="kwic-left">${esc(r.left)}</td>
+        <td class="kwic-node">${esc(r.node)}</td>
+        <td class="kwic-right">${esc(r.right)}</td>
+      </tr>
+      <tr style="display:none;background:var(--amber-light)">
+        <td colspan="3" class="kwic-meta" style="padding:8px 12px;font-size:0.78rem">
+          <div style="margin-bottom:4px;color:var(--text-2)">${esc(r.text)}</div>
+          <div>${metaBadges(r)}</div>
+          ${r.title ? `<div style="font-size:0.68rem;color:var(--text-3);margin-top:3px">Source: ${esc(r.title)}</div>`:''}
+        </td>
+      </tr>`).join('');
+
+    out.innerHTML = viewToggle + statsHtml + `
+      <table class="kwic-table">
+        <thead><tr>
+          <th class="kwic-left" style="font-size:0.68rem;color:var(--text-3);padding:4px 4px 8px;font-weight:600">LEFT</th>
+          <th class="kwic-node" style="font-size:0.68rem;color:var(--text-3);padding:4px;font-weight:600">NODE</th>
+          <th class="kwic-right" style="font-size:0.68rem;color:var(--text-3);padding:4px 8px 8px;font-weight:600">RIGHT</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } else {
+    let cards = data.results.map(r => `
+      <div class="sent-card">
+        <div class="sent-card-text">${highlightNode(esc(r.text), q)}</div>
+        <div class="sent-card-meta">${metaBadges(r)}${r.title?`<span class="kwic-badge" style="color:var(--text-3)">${esc(r.title.slice(0,50))}</span>`:''}</div>
+      </div>`).join('');
+    out.innerHTML = viewToggle + statsHtml + cards;
+  }
+}
+
+function setConcView(v) {
+  concordanceView = v;
+  const q = document.getElementById('search-input').value.trim();
+  if (q) runSearch();
+}
+
+// ── COLLOCATION RENDERER ──────────────────────────────────────────────────
+function renderCollocations(data, q) {
+  const out = document.getElementById('search-output');
+  if (data.error) { out.innerHTML = `<div class="index-notice">${esc(data.error)}</div>`; return; }
+  if (!data.results || !data.results.length) {
+    out.innerHTML = `<div class="search-empty"><p>No collocations found for <strong>${esc(q)}</strong>.</p></div>`; return;
+  }
+
+  const maxMI  = Math.max(...data.results.map(r => r.mi));
+  const maxFreq = Math.max(...data.results.map(r => r.freq));
+
+  const statsHtml = `<div class="search-stats">
+    <strong>${data.node_freq}</strong> occurrences of <strong>"${esc(q)}"</strong> · 
+    Top collocates within <strong>±${data.window}</strong> words · ranked by MI score
+  </div>`;
+
+  const rows = data.results.map(r => {
+    const miPct   = maxMI  > 0 ? Math.max(5, (r.mi   / maxMI)  * 100) : 5;
+    const freqPct = maxFreq > 0 ? Math.max(5, (r.freq / maxFreq) * 100) : 5;
+    return `
+      <div class="coll-cell coll-word">${esc(r.word)}</div>
+      <div class="coll-cell" style="text-align:center">${r.freq}</div>
+      <div class="coll-cell" style="text-align:center;color:var(--amber-dark);font-weight:600">${r.mi}</div>
+      <div class="coll-bar-wrap">
+        <div class="coll-bar" style="width:${miPct}%"></div>
+        <span style="font-size:0.65rem;color:var(--text-3)">MI strength</span>
+      </div>`;
+  }).join('');
+
+  out.innerHTML = statsHtml + `
+    <div class="coll-grid">
+      <div class="coll-head">Collocate</div>
+      <div class="coll-head" style="text-align:center">Freq</div>
+      <div class="coll-head" style="text-align:center">MI</div>
+      ${rows}
+    </div>`;
+}
+
+// ── N-GRAM RENDERER ───────────────────────────────────────────────────────
+function renderNgrams(data, q) {
+  const out = document.getElementById('search-output');
+  if (data.error) { out.innerHTML = `<div class="index-notice">${esc(data.error)}</div>`; return; }
+
+  const nSelector = `
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+      <span class="filter-label">N-gram size:</span>
+      <div class="n-selector">
+        ${[2,3,4,5].map(n => `<button class="n-btn ${activeN===n?'active':''}" onclick="setN(${n})">${n}</button>`).join('')}
+      </div>
+    </div>`;
+
+  if (!data.results || !data.results.length) {
+    out.innerHTML = nSelector + `<div class="search-empty"><p>No ${data.n}-grams found containing <strong>${esc(q)}</strong>.</p></div>`;
+    return;
+  }
+
+  const statsHtml = `<div class="search-stats"><strong>${data.total}</strong> unique ${data.n}-grams containing <strong>"${esc(q)}"</strong></div>`;
+
+  const items = data.results.map(r => `
+    <div class="ngram-item">
+      <div class="ngram-phrase">${highlightNode(esc(r.ngram), q)}</div>
+      <div class="ngram-freq">${r.freq}×</div>
+      ${r.example ? `<div class="ngram-example">${highlightNode(esc(r.example.slice(0,120)), q)}…</div>` : ''}
+    </div>`).join('');
+
+  out.innerHTML = nSelector + statsHtml + `<div class="ngram-list">${items}</div>`;
+}
+
+function setN(n) {
+  activeN = n;
+  const q = document.getElementById('search-input').value.trim();
+  if (q) runSearch();
+}
+
+// ── DISPERSION RENDERER ───────────────────────────────────────────────────
+function renderDispersion(data, q) {
+  const out = document.getElementById('search-output');
+  if (data.error) { out.innerHTML = `<div class="index-notice">${esc(data.error)}</div>`; return; }
+
+  const statsHtml = `<div class="search-stats">Frequency of <strong>"${esc(q)}"</strong> per million tokens, by corpus and discipline</div>`;
+
+  const maxCorpus = Math.max(...data.by_corpus.map(r => r.hpm), 1);
+  const corpusRows = data.by_corpus.map(r => `
+    <div class="disp-row">
+      <div class="disp-label">${esc(r.label)}</div>
+      <div class="disp-track"><div class="disp-fill" style="width:${Math.max(2,(r.hpm/maxCorpus)*100)}%"></div></div>
+      <div class="disp-val">${r.hpm} <span style="font-size:0.65rem">per M</span></div>
+    </div>`).join('');
+
+  // Filter out unlabelled for discipline view
+  const labelledDisc = data.by_discipline.filter(r => r.label !== '(unlabelled)' && r.hits > 0);
+  const maxDisc = Math.max(...labelledDisc.map(r => r.hpm), 1);
+  const discRows = labelledDisc.map(r => `
+    <div class="disp-row">
+      <div class="disp-label">${esc(r.label)}</div>
+      <div class="disp-track"><div class="disp-fill" style="width:${Math.max(2,(r.hpm/maxDisc)*100)}%;background:var(--navy-light)"></div></div>
+      <div class="disp-val">${r.hpm} <span style="font-size:0.65rem">per M</span></div>
+    </div>`).join('');
+
+  out.innerHTML = statsHtml +
+    `<div class="disp-section">
+      <div class="disp-section-title">By corpus</div>
+      ${corpusRows || '<p style="color:var(--text-3);font-size:0.82rem">No hits found.</p>'}
+    </div>
+    <div class="disp-section">
+      <div class="disp-section-title">By discipline</div>
+      ${discRows || '<p style="color:var(--text-3);font-size:0.82rem">No discipline-labelled hits found.</p>'}
+    </div>`;
 }
 
 // ── START ─────────────────────────────────────────────────────────────────
