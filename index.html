@@ -175,13 +175,23 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 .search-box input::placeholder, .search-box textarea::placeholder { color: var(--text-3); }
 .search-box input:disabled, .search-box textarea:disabled { opacity: 0.5; }
 
-/* Mode pill — shows Search vs Ask routing */
-.mode-pill {
-  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  border-radius: 10px; padding: 2px 8px; flex-shrink: 0; margin-right: 6px; transition: all 0.2s;
+/* Mode toggle */
+.mode-toggle {
+  display: flex; flex-shrink: 0;
+  border: 1.5px solid var(--border); border-radius: var(--r-lg);
+  overflow: hidden; margin-right: 8px;
 }
-.mode-pill.mode-search { background: var(--navy); color: #fff; }
-.mode-pill.mode-ask    { background: var(--amber); color: var(--navy); }
+.mode-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border: none; background: var(--slate);
+  font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500;
+  color: var(--text-3); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.mode-btn svg { width: 13px; height: 13px; fill: currentColor; }
+.mode-btn.active { background: var(--navy); color: #fff; }
+.mode-btn:first-child { border-right: 1px solid var(--border); }
+.mode-btn.active + .mode-btn { border-left: none; }
+#mode-btn-ask.active { background: var(--amber); color: var(--navy); }
 .search-go {
   background: var(--navy); color: #fff; border: none; border-radius: var(--r-lg);
   padding: 9px 20px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
@@ -540,12 +550,21 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
   <!-- Search bar -->
   <div class="search-topbar">
     <div class="search-input-row">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-btn-search" onclick="setMode('search')">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          Search
+        </button>
+        <button class="mode-btn" id="mode-btn-ask" onclick="setMode('ask')">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          Ask
+        </button>
+      </div>
       <div class="search-box" id="search-box">
-        <div id="mode-pill" class="mode-pill mode-search">Search</div>
         <textarea id="search-input" rows="1" disabled
-          placeholder="Search a word, or ask a question… (loading)"
+          placeholder="Search a word or phrase… (loading)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleInput()}"
-          oninput="onInputChange(this)"></textarea>
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
       </div>
       <button class="search-go" id="search-go" onclick="handleInput()" disabled>Go</button>
     </div>
@@ -910,59 +929,72 @@ async function onAllDone(loaded) {
   enableSearch();
 }
 
-// ── SMART ROUTING ─────────────────────────────────────────────────────────
-// Heuristic: if the input looks like a natural-language question, route to LLM.
-// Otherwise route to corpus search.
-function isQuestion(text) {
-  const t = text.trim();
-  // Long input (>6 words) almost always a question
-  if (t.split(/\s+/).length > 6) return true;
-  // Starts with a question word
-  if (/^(how|what|why|when|where|which|who|does|do|is|are|can|could|would|should|explain|tell|describe|compare|give me|show me)/i.test(t)) return true;
-  // Contains a verb phrase suggesting a question
-  if (/\b(differ|compare|differ|work|feel|mean|explain|describe)\b/i.test(t) && t.split(/\s+/).length > 3) return true;
-  // Contains wildcard → always search
-  if (t.includes('*')) return false;
-  // Short (1-3 words) → always search
-  if (t.split(/\s+/).length <= 3) return false;
-  return false;
-}
+// ── MODE TOGGLE ───────────────────────────────────────────────────────────
+let currentMode = 'search'; // 'search' | 'ask'
 
-function onInputChange(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-  const t = el.value.trim();
-  const pill = document.getElementById('mode-pill');
-  const go   = document.getElementById('search-go');
-  if (!t) {
-    pill.className = 'mode-pill mode-search'; pill.textContent = 'Search';
-    go.textContent = 'Go'; return;
-  }
-  if (isQuestion(t)) {
-    pill.className = 'mode-pill mode-ask'; pill.textContent = 'Ask';
-    go.textContent = 'Ask';
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-btn-search').classList.toggle('active', mode === 'search');
+  document.getElementById('mode-btn-ask').classList.toggle('active', mode === 'ask');
+  const inp = document.getElementById('search-input');
+  if (mode === 'search') {
+    inp.placeholder = 'Search a word or phrase (use * as wildcard)…';
+    document.getElementById('search-go').textContent = 'Search';
   } else {
-    pill.className = 'mode-pill mode-search'; pill.textContent = 'Search';
-    go.textContent = 'Search';
+    inp.placeholder = 'Ask a language question about the corpus…';
+    document.getElementById('search-go').textContent = 'Ask';
   }
+  inp.focus();
 }
 
 function handleInput() {
   const t = document.getElementById('search-input').value.trim();
   if (!t) return;
-  if (isQuestion(t)) {
+  if (currentMode === 'ask') {
     sendLLM(t);
   } else {
     runSearch();
   }
 }
 
+// ── SEND VIA BACKEND (LLM) ────────────────────────────────────────────────
+async function sendViaBackend(text, context, typId, attempt) {
+  try {
+    const res  = await fetch(BACKEND_URL + '/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: text, corpus_context: context })
+    });
+    const data = await res.json();
+    document.getElementById(typId)?.remove();
+    if (data.error === 'limit_reached') {
+      showLimitNotice(data.wait_seconds);
+      appendLLMMsg('cm', data.message);
+      return;
+    }
+    if (data.error) {
+      appendLLMMsg('cm', 'Something went wrong: ' + data.message);
+      return;
+    }
+    queriesLeft = data.remaining;
+    updateBadge();
+    appendLLMMsg('cm', data.reply);
+  } catch(e) {
+    if (attempt < 3) {
+      await new Promise(r => setTimeout(r, 4000));
+      await sendViaBackend(text, context, typId, attempt + 1);
+    } else {
+      document.getElementById(typId)?.remove();
+      appendLLMMsg('cm', 'The backend is waking up — please try again in a moment.');
+    }
+  }
+}
+
 function enableSearch() {
-  const inp = document.getElementById('search-input');
-  inp.disabled = false;
-  inp.placeholder = 'Search a word or phrase, or ask a question…';
+  document.getElementById('search-input').disabled = false;
   document.getElementById('search-go').disabled = false;
-  inp.focus();
+  setMode('search');
+  document.getElementById('search-input').focus();
 }
 
 // ── CONTEXT BUILDER (for LLM) ─────────────────────────────────────────────
@@ -993,13 +1025,15 @@ function setSubtab(tab) {
 }
 
 function trySuggestion(term) {
+  setMode('search');
   const inp = document.getElementById('search-input');
-  inp.value = term; onInputChange(inp); runSearch();
+  inp.value = term; runSearch();
 }
 
 function tryAsk(question) {
+  setMode('ask');
   const inp = document.getElementById('search-input');
-  inp.value = question; onInputChange(inp); sendLLM(question);
+  inp.value = question; sendLLM(question);
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────
