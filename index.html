@@ -298,17 +298,63 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
 .search-stats { font-size: 0.75rem; color: var(--text-3); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .search-stats strong { color: var(--text-2); }
 
-/* KWIC */
-.kwic-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; background: #fff; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--border); }
-.kwic-head { background: var(--navy); color: #fff; font-size: 0.65rem; letter-spacing: 0.06em; font-weight: 600; padding: 7px 10px; }
-.kwic-row { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
-.kwic-row:hover { background: var(--amber-light); }
-.kwic-left { text-align: right; padding: 5px 4px 5px 10px; color: var(--text-2); width: 38%; }
-.kwic-node { text-align: center; padding: 5px 8px; font-weight: 700; color: var(--navy); white-space: nowrap; }
-.kwic-right { text-align: left; padding: 5px 10px 5px 4px; color: var(--text-2); width: 38%; }
-.kwic-expand { display: none; background: var(--amber-light); }
-.kwic-expand td { padding: 8px 14px; font-size: 0.78rem; color: var(--text-2); }
-.kwic-badge { display: inline-flex; align-items: center; background: rgba(0,0,0,0.06); border-radius: 10px; padding: 1px 7px; font-size: 0.62rem; color: var(--text-3); margin-right: 3px; }
+/* ── POS COLOURS ── */
+.pos-nn  { color: #2563eb; }          /* nouns — blue */
+.pos-vb  { color: #16a34a; }          /* verbs — green */
+.pos-jj  { color: #b45309; }          /* adjectives — amber */
+.pos-rb  { color: #7c3aed; }          /* adverbs — purple */
+.pos-in  { color: var(--text-3); }    /* prepositions — grey */
+.pos-dt  { color: var(--text-3); }    /* determiners — grey */
+.pos-cc  { color: var(--text-3); }    /* conjunctions — grey */
+.pos-node { font-weight: 700; color: var(--navy); background: var(--amber-light); border-radius: 3px; padding: 0 2px; }
+
+/* ── CONCORDANCE GROUPS ── */
+.conc-sort-bar {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.conc-sort-label { font-size: 0.72rem; color: var(--text-3); font-weight: 500; }
+.sort-btn {
+  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--slate);
+  padding: 3px 9px; font-family: 'DM Sans', sans-serif; font-size: 0.72rem;
+  color: var(--text-2); cursor: pointer; transition: all 0.12s;
+}
+.sort-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.sort-btn:hover:not(.active) { border-color: var(--amber); }
+
+.conc-group { margin-bottom: 3px; }
+.conc-group-row {
+  display: flex; align-items: center;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--r-md); overflow: hidden;
+  transition: border-color 0.12s;
+}
+.conc-group-row:hover { border-color: var(--amber); }
+
+.conc-left  { flex: 1; text-align: right; padding: 6px 6px 6px 10px; font-size: 0.82rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; }
+.conc-node  { padding: 6px 4px; white-space: nowrap; flex-shrink: 0; }
+.conc-right { flex: 1; padding: 6px 4px; font-size: 0.82rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.conc-meta  { display: flex; align-items: center; gap: 5px; padding: 6px 10px; flex-shrink: 0; border-left: 1px solid var(--border); }
+.conc-count { font-size: 0.68rem; font-weight: 700; color: #fff; background: var(--navy); border-radius: 10px; padding: 1px 7px; white-space: nowrap; }
+.conc-expand-btn {
+  width: 22px; height: 22px; border: 1px solid var(--border); border-radius: 50%;
+  background: var(--slate); cursor: pointer; font-size: 10px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s; flex-shrink: 0; color: var(--text-3);
+}
+.conc-expand-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+.conc-expand-btn.open { background: var(--amber); color: var(--navy); border-color: var(--amber-dark); transform: rotate(180deg); }
+
+.conc-hits { display: none; border-left: 3px solid var(--amber); margin: 2px 0 2px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; overflow: hidden; }
+.conc-hits.open { display: block; }
+.conc-hit-row {
+  display: flex; align-items: center;
+  background: var(--slate); border-bottom: 1px solid var(--border);
+  padding: 4px 10px 4px 0;
+}
+.conc-hit-row:last-child { border-bottom: none; }
+.conc-hit-badge { display: flex; gap: 3px; padding: 0 8px; flex-shrink: 0; }
+
 
 /* Sentence view */
 .sent-card { background: #fff; border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 7px; }
@@ -1056,7 +1102,7 @@ async function runSearch() {
     const params = new URLSearchParams({q, corpus:activeCorpusValue, discipline, mode});
     let data;
     if(activeSubtab==='concordance'){
-      params.set('limit','100');
+      params.set('limit','500'); params.set('sort', concSort);
       data = await(await fetch(BACKEND_URL+'/search/concordance?'+params)).json();
       renderConcordance(data, q);
     } else if(activeSubtab==='collocations'){
@@ -1110,27 +1156,115 @@ function badges(item){
   return h;
 }
 
-function renderConcordance(data,q){
-  const out=document.getElementById('search-output');
-  if(data.error){out.innerHTML=`<div class="notice">${esc(data.error)}</div>`;return;}
-  if(!data.results?.length){out.innerHTML=`<div class="search-empty"><p>No results for <strong>${esc(q)}</strong>. Try a wildcard (${esc(q)}*) or broaden your filters.</p></div>`;return;}
-  const vt=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px"><span class="filter-label">View:</span><div class="view-toggle"><button class="v-btn ${concordView==='pattern'?'active':''}" onclick="setConcView('pattern')">Pattern (KWIC)</button><button class="v-btn ${concordView==='sentence'?'active':''}" onclick="setConcView('sentence')">Full sentence</button></div></div>`;
-  const stats=`<div class="search-stats"><strong>${data.total}</strong> results for <strong>"${esc(q)}"</strong> ${activeCorpusValue!=='all'?`in <strong>${esc(activeCorpusLabel)}</strong>`:''}</div>`;
-  if(concordView==='pattern'){
-    const rows=data.results.map(r=>`
-      <tr class="kwic-row" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'table-row':'none'">
-        <td class="kwic-left">${esc(r.left)}</td><td class="kwic-node">${esc(r.node)}</td><td class="kwic-right">${esc(r.right)}</td>
-      </tr>
-      <tr class="kwic-expand" style="display:none"><td colspan="3">
-        <div style="margin-bottom:4px">${esc(r.text)}</div>
-        <div>${badges(r)}${r.title?`<span class="kwic-badge">${esc(r.title.slice(0,50))}</span>`:''}</div>
-      </td></tr>`).join('');
-    out.innerHTML=vt+stats+`<table class="kwic-table"><thead><tr><th class="kwic-head" style="text-align:right">LEFT</th><th class="kwic-head" style="text-align:center">NODE</th><th class="kwic-head">RIGHT</th></tr></thead><tbody>${rows}</tbody></table>`;
-  } else {
-    out.innerHTML=vt+stats+data.results.map(r=>`<div class="sent-card"><div class="sent-text">${hilite(r.text,q)}</div><div class="sent-meta">${badges(r)}${r.title?`<span class="kwic-badge">${esc(r.title.slice(0,60))}</span>`:''}</div></div>`).join('');
-  }
+// ── POS COLOURING ─────────────────────────────────────────────────────────
+function posClass(pos) {
+  if (!pos) return '';
+  const p = pos.toUpperCase();
+  if (p.startsWith('NN') || p === 'NP' || p.startsWith('NPS')) return 'pos-nn';
+  if (p.startsWith('VB') || p.startsWith('VV') || p.startsWith('VH') || p.startsWith('MD')) return 'pos-vb';
+  if (p.startsWith('JJ')) return 'pos-jj';
+  if (p.startsWith('RB')) return 'pos-rb';
+  if (p === 'IN' || p === 'TO') return 'pos-in';
+  if (p === 'DT' || p === 'PDT') return 'pos-dt';
+  if (p === 'CC') return 'pos-cc';
+  return '';
 }
-function setConcView(v){concordView=v;const q=document.getElementById('search-input').value.trim();if(q)runSearch();}
+
+function renderTokens(pairs, isNode) {
+  return pairs.map(({w, p}) => {
+    const cls = isNode ? 'pos-node' : posClass(p);
+    return cls ? `<span class="${cls}">${esc(w)}</span>` : esc(w);
+  }).join(' ');
+}
+
+// ── CONCORDANCE SORT STATE ────────────────────────────────────────────────
+let concSort = 'freq';
+
+function setConcSort(s) {
+  concSort = s;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === s));
+  const q = document.getElementById('search-input').value.trim();
+  if (q) runSearch();
+}
+
+function renderConcordance(data, q) {
+  const out = document.getElementById('search-output');
+  if (data.error) { out.innerHTML = `<div class="notice">${esc(data.error)}</div>`; return; }
+  if (!data.groups || !data.groups.length) {
+    out.innerHTML = `<div class="search-empty"><p>No results for <strong>${esc(q)}</strong>. Try a wildcard (${esc(q)}*) or broaden your filters.</p></div>`;
+    return;
+  }
+
+  const totalGroups = data.groups.length;
+  const totalHits   = data.total;
+
+  // Sort bar
+  const sortBtns = ['freq','r1','r2','r3','r4','l1','l2','l3','l4'].map(s =>
+    `<button class="sort-btn${concSort===s?' active':''}" data-sort="${s}" onclick="setConcSort('${s}')">${s.toUpperCase()}</button>`
+  ).join('');
+
+  const stats = `<div class="search-stats">
+    <strong>${totalHits}</strong> hits in <strong>${totalGroups}</strong> groups for <strong>"${esc(q)}"</strong>
+    ${activeCorpusValue !== 'all' ? `in <strong>${esc(activeCorpusLabel)}</strong>` : ''}
+  </div>`;
+
+  const sortBar = `<div class="conc-sort-bar">
+    <span class="conc-sort-label">Sort by:</span>${sortBtns}
+    <span class="conc-sort-label" style="margin-left:8px;font-size:0.65rem">Freq = most common pattern first · R1/R2… = sort by word to right · L1/L2… = sort by word to left</span>
+  </div>`;
+
+  // POS legend
+  const legend = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:0.7rem">
+    <span><span class="pos-nn">■</span> Noun</span>
+    <span><span class="pos-vb">■</span> Verb</span>
+    <span><span class="pos-jj">■</span> Adjective</span>
+    <span><span class="pos-rb">■</span> Adverb</span>
+    <span style="color:var(--text-3)">■ Function word</span>
+  </div>`;
+
+  const rows = data.groups.map((g, gi) => {
+    // Representative hit = first in group
+    const rep   = g.hits[0];
+    const badge = `<span class="kwic-badge">${esc(rep.source)}</span>`;
+
+    const expandId = `grp-${gi}`;
+    const hitsHtml = g.hits.map(h => `
+      <div class="conc-hit-row">
+        <div class="conc-left">${renderTokens(h.left, false)}</div>
+        <div class="conc-node">${renderTokens(h.node, true)}</div>
+        <div class="conc-right">${renderTokens(h.right, false)}</div>
+        <div class="conc-meta">
+          <span class="kwic-badge">${esc(h.source)}</span>
+          ${h.disciplines.length ? `<span class="kwic-badge">${esc(h.disciplines[0])}</span>` : ''}
+        </div>
+      </div>`).join('');
+
+    return `
+      <div class="conc-group">
+        <div class="conc-group-row">
+          <div class="conc-left">${renderTokens(rep.left, false)}</div>
+          <div class="conc-node">${renderTokens(rep.node, true)}</div>
+          <div class="conc-right">${renderTokens(rep.right, false)}</div>
+          <div class="conc-meta">
+            ${g.count > 1 ? `<span class="conc-count">${g.count}×</span>` : badge}
+            ${g.count > 1 ? `<button class="conc-expand-btn" id="btn-${expandId}" onclick="toggleGroup('${expandId}')">▼</button>` : ''}
+          </div>
+        </div>
+        ${g.count > 1 ? `<div class="conc-hits" id="${expandId}">${hitsHtml}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  out.innerHTML = sortBar + stats + legend + rows;
+}
+
+function toggleGroup(id) {
+  const hits = document.getElementById(id);
+  const btn  = document.getElementById('btn-' + id);
+  const open = hits.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+function setConcView(v) { concordView = v; const q = document.getElementById('search-input').value.trim(); if (q) runSearch(); }
 
 function renderCollocations(data,q){
   const out=document.getElementById('search-output');
@@ -1192,9 +1326,16 @@ function appendLLMTyping(id){
   const log=document.getElementById('llm-log');
   const div=document.createElement('div');
   div.className='llm-msg cm'; div.id=id;
+  div.innerHTML='<div class="llm-avatar cm">CM</div><div class="llm-bubble"><div class="llm-typing"><span></span><span></span><span></span></div></div>';
+  log.appendChild(div); div.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function showLimitNotice(wait){
+  queriesLeft=0; updateBadge();
+  const hint=document.getElementById('llm-hint');
   const card=document.createElement('div'); card.className='limit-card'; card.id='limit-card';
   card.innerHTML=`<h3>Daily limit reached</h3><p>You've used all 100 free queries. Come back when the timer resets.</p><div class="countdown" id="countdown">--:--:--</div><details style="font-size:0.78rem;color:var(--text-2)"><summary style="cursor:pointer">Use my own Cohere API key →</summary><div class="own-key-section"><input type="password" id="own-key" placeholder="Enter Cohere API key…"><button onclick="saveOwnKey()">Connect</button></div></details>`;
-  hint.after(card); startCountdown(wait);
+  if(hint) hint.after(card); else document.getElementById('llm-panel').appendChild(card);
+  startCountdown(wait);
 }
 function startCountdown(s){
   if(countdownTimer)clearInterval(countdownTimer);
