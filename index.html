@@ -676,14 +676,14 @@ const FORMSPREE   = 'https://formspree.io/f/YOUR-FORMSPREE-ID';
 const MAX_CHUNKS  = 40;
 
 const CORPUS_FILES = {
-  'BAWE':       'bawe.vert',
-  'BBC':        'bbc.vert',
-  'Elsevier':   'elsevier.vert',
-  'Games':      'games.vert',
-  'Simplewiki': 'simplewiki.vert',
-  'subtitles':  'subtitles.vert',
-  'BASE':       'base.vert',
-  'TED':        'ted.vert',
+  'BBC':        'bbc.vert',       //   6MB — loads first, enables search immediately
+  'BASE':       'base.vert',      //  24MB
+  'Games':      'games.vert',     //  48MB
+  'TED':        'ted.vert',       //  84MB
+  'BAWE':       'bawe.vert',      // 113MB
+  'subtitles':  'subtitles.vert', // 131MB
+  'Elsevier':   'elsevier.vert',  // 187MB
+  'Simplewiki': 'simplewiki.vert', // 230MB
 };
 
 // Maps sidebar corpus value → CORPUS_FILES key (for buildContext)
@@ -832,34 +832,64 @@ async function loadCorpus() {
   corpusChunks = {}; allChunks = [];
   const keys = Object.keys(CORPUS_FILES);
   let loaded = 0;
+  let enabled = false;
+
   for (let i = 0; i < keys.length; i++) {
     const key   = keys[i];
     const fname = CORPUS_FILES[key];
     const url   = BACKEND_URL + '/corpus/' + fname;
     try {
-      // Try cache first
       let raw = await cacheGet(url);
-      const fromCache = !!raw;
       if (!raw) {
         const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         raw = await res.text();
-        cachePut(url, raw); // store for next visit
+        cachePut(url, raw);
       }
       const chunks = sentencesToChunks(parseVert(raw));
-      raw = null; // free memory immediately after parsing
+      raw = null;
       corpusChunks[key] = chunks;
       allChunks.push(...chunks);
       loaded++;
     } catch(e) {
       console.warn('Could not load', fname, e);
     }
+
     setBar(Math.round(((i + 1) / keys.length) * 100));
     document.getElementById('loader-count').textContent = loaded + '/' + keys.length;
     document.getElementById('loader-count').style.display = 'inline';
-    setStatus('loading', `Loading corpora… (${i + 1}/${keys.length})`);
+
+    // Enable search as soon as the first corpus is ready
+    if (loaded >= 1 && !enabled) {
+      enabled = true;
+      document.getElementById('search-input').disabled = false;
+      document.getElementById('search-go').disabled = false;
+      document.getElementById('search-input').placeholder = 'Search a word or phrase, or ask a question…';
+      setStatus('ready', loaded + ' corpora ready — more loading…');
+      // Check query limit once
+      try {
+        const res  = await fetch(BACKEND_URL + '/status');
+        const data = await res.json();
+        queriesLeft = data.remaining; updateBadge();
+        if (data.wait_seconds > 0) showLimitNotice(data.wait_seconds);
+      } catch(e) {}
+    } else if (enabled) {
+      setStatus('ready', loaded + '/' + keys.length + ' corpora ready');
+    } else {
+      setStatus('loading', `Loading corpora… (${i + 1}/${keys.length})`);
+    }
   }
-  onAllDone(loaded);
+
+  // All done
+  setBar(100);
+  document.getElementById('loader-dots').style.display = 'none';
+  setStatus('ready', loaded + ' corpora ready');
+  document.getElementById('loader-count').textContent = loaded + '/' + keys.length;
+
+  if (!enabled) {
+    // Edge case: nothing loaded at all
+    setStatus('error', 'Corpora failed to load');
+  }
 }
 
 async function onAllDone(loaded) {
