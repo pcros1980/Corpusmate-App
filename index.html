@@ -578,10 +578,12 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
         <option value="chemistry">Chemistry</option>
         <option value="culture">Culture &amp; Arts</option>
         <option value="economics">Economics</option>
+        <option value="education">Education</option>
         <option value="engineering">Engineering</option>
         <option value="games">Games &amp; Sport</option>
         <option value="geography">Geography</option>
         <option value="history">History</option>
+        <option value="journalism">Journalism &amp; Media</option>
         <option value="language">Language &amp; Linguistics</option>
         <option value="law">Law</option>
         <option value="mathematics">Mathematics</option>
@@ -590,6 +592,7 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
         <option value="physics">Physics</option>
         <option value="politics">Politics</option>
         <option value="psychology">Psychology</option>
+        <option value="science">Science</option>
         <option value="society">Society &amp; Social Science</option>
         <option value="technology">Technology</option>
       </select>
@@ -1161,7 +1164,7 @@ function renderDispersion(data,q){
   const stats=`<div class="search-stats">Frequency of <strong>"${esc(q)}"</strong> per million tokens</div>`;
   const mc=Math.max(...data.by_corpus.map(r=>r.hpm),1);
   const corpRows=data.by_corpus.map(r=>`<div class="disp-row"><div class="disp-label">${esc(r.label)}</div><div class="disp-track"><div class="disp-fill" style="width:${Math.max(2,(r.hpm/mc)*100)}%"></div></div><div class="disp-val">${r.hpm}/M</div></div>`).join('');
-  const ld=data.by_discipline.filter(r=>r.label!=='(unlabelled)'&&r.hits>0);
+  const ld=data.by_discipline.filter(r=>r.hits>0);
   const md=Math.max(...ld.map(r=>r.hpm),1);
   const discRows=ld.map(r=>`<div class="disp-row"><div class="disp-label">${esc(r.label)}</div><div class="disp-track"><div class="disp-fill" style="width:${Math.max(2,(r.hpm/md)*100)}%;background:var(--navy-light)"></div></div><div class="disp-val">${r.hpm}/M</div></div>`).join('');
   out.innerHTML=stats+`<div class="disp-section"><div class="disp-title">By corpus</div>${corpRows}</div><div class="disp-section"><div class="disp-title">By discipline</div>${discRows||'<p style="color:var(--text-3);font-size:0.8rem">No discipline-labelled hits.</p>'}</div>`;
