@@ -831,15 +831,35 @@ async function loadCorpus() {
   setStatus('loading', 'Loading corpora…');
   corpusChunks = {}; allChunks = [];
   const keys = Object.keys(CORPUS_FILES);
-  let loaded = 0, settled = 0;
-  const onDone = (ok) => {
-    if(ok) loaded++; settled++;
-    setBar(Math.round((settled / keys.length) * 100));
+  let loaded = 0;
+  for (let i = 0; i < keys.length; i++) {
+    const key   = keys[i];
+    const fname = CORPUS_FILES[key];
+    const url   = BACKEND_URL + '/corpus/' + fname;
+    try {
+      // Try cache first
+      let raw = await cacheGet(url);
+      const fromCache = !!raw;
+      if (!raw) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        raw = await res.text();
+        cachePut(url, raw); // store for next visit
+      }
+      const chunks = sentencesToChunks(parseVert(raw));
+      raw = null; // free memory immediately after parsing
+      corpusChunks[key] = chunks;
+      allChunks.push(...chunks);
+      loaded++;
+    } catch(e) {
+      console.warn('Could not load', fname, e);
+    }
+    setBar(Math.round(((i + 1) / keys.length) * 100));
     document.getElementById('loader-count').textContent = loaded + '/' + keys.length;
     document.getElementById('loader-count').style.display = 'inline';
-    if(settled === keys.length) onAllDone(loaded);
-  };
-  await Promise.all(keys.map(k => loadOne(k, CORPUS_FILES[k], onDone)));
+    setStatus('loading', `Loading corpora… (${i + 1}/${keys.length})`);
+  }
+  onAllDone(loaded);
 }
 
 async function onAllDone(loaded) {
