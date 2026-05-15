@@ -786,44 +786,70 @@ function sentencesToChunks(sents, size=1800) {
 }
 
 // ── INDEXEDDB CACHE ───────────────────────────────────────────────────────
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('corpusmate-v2',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('c');r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
-async function dbGet(db,k){return new Promise((res,rej)=>{const r=db.transaction('c','readonly').objectStore('c').get(k);r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
-async function dbPut(db,k,v){return new Promise((res,rej)=>{const r=db.transaction('c','readwrite').objectStore('c').put(v,k);r.onsuccess=()=>res();r.onerror=e=>rej(e.target.error);});}
+// ── CACHE API (replaces IndexedDB — handles large files reliably) ──────────
+const CACHE_NAME = 'corpusmate-corpus-v1';
 
-async function loadOne(db, key, fname, onDone) {
+async function cacheGet(url) {
   try {
-    const cached = db ? await dbGet(db,'chunks:'+fname).catch(()=>null) : null;
-    if(cached){corpusChunks[key]=cached;allChunks.push(...cached);onDone(true);return;}
-    const res=await fetch(BACKEND_URL+'/corpus/'+fname);
-    if(!res.ok)throw new Error(res.status);
-    const raw=await res.text();
-    const chunks=sentencesToChunks(parseVert(raw));
-    corpusChunks[key]=chunks;allChunks.push(...chunks);
-    if(db)dbPut(db,'chunks:'+fname,chunks).catch(()=>{});
+    const cache = await caches.open(CACHE_NAME);
+    const match = await cache.match(url);
+    if (match) return await match.text();
+  } catch(e) {}
+  return null;
+}
+
+async function cachePut(url, text) {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(url, new Response(text, { headers: { 'Content-Type': 'text/plain' } }));
+  } catch(e) { console.warn('Cache write failed:', e); }
+}
+
+async function loadOne(key, fname, onDone) {
+  const url = BACKEND_URL + '/corpus/' + fname;
+  try {
+    // Try Cache API first
+    let raw = await cacheGet(url);
+    if (raw) {
+      const chunks = sentencesToChunks(parseVert(raw));
+      corpusChunks[key] = chunks; allChunks.push(...chunks);
+      onDone(true); return;
+    }
+    // Fetch from backend
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    raw = await res.text();
+    const chunks = sentencesToChunks(parseVert(raw));
+    corpusChunks[key] = chunks; allChunks.push(...chunks);
+    // Cache the raw text for next visit
+    cachePut(url, raw);
     onDone(true);
-  } catch(e){console.warn('Could not load',fname,e);onDone(false);}
+  } catch(e) { console.warn('Could not load', fname, e); onDone(false); }
 }
 
 async function loadCorpus() {
-  setStatus('loading','Loading corpora…');
-  corpusChunks={}; allChunks=[];
-  const keys=Object.keys(CORPUS_FILES);
-  let loaded=0, settled=0;
-  let db=null; try{db=await openDB();}catch(e){}
-  const onDone=(ok)=>{
-    if(ok)loaded++;settled++;
-    setBar(Math.round((settled/keys.length)*100));
-    document.getElementById('loader-count').textContent=loaded+'/'+keys.length;
-    document.getElementById('loader-count').style.display='inline';
-    if(settled===keys.length)onAllDone(loaded);
+  setStatus('loading', 'Loading corpora…');
+  corpusChunks = {}; allChunks = [];
+  const keys = Object.keys(CORPUS_FILES);
+  let loaded = 0, settled = 0;
+  const onDone = (ok) => {
+    if(ok) loaded++; settled++;
+    setBar(Math.round((settled / keys.length) * 100));
+    document.getElementById('loader-count').textContent = loaded + '/' + keys.length;
+    document.getElementById('loader-count').style.display = 'inline';
+    if(settled === keys.length) onAllDone(loaded);
   };
-  await Promise.all(keys.map(k=>loadOne(db,k,CORPUS_FILES[k],onDone)));
+  await Promise.all(keys.map(k => loadOne(k, CORPUS_FILES[k], onDone)));
 }
 
 async function onAllDone(loaded) {
   document.getElementById('loader-dots').style.display='none';
   if(!loaded){setStatus('error','Corpora failed to load');return;}
-  setStatus('ready', loaded+' corpora ready');
+  // Check if any came from cache
+  const cache = await caches.open(CACHE_NAME).catch(()=>null);
+  const firstUrl = BACKEND_URL + '/corpus/' + Object.values(CORPUS_FILES)[0];
+  const fromCache = cache ? !!(await cache.match(firstUrl).catch(()=>null)) : false;
+  setStatus('ready', loaded + ' corpora ready' + (fromCache ? ' (cached)' : ''));
   setBar(100);
   try {
     const res=await fetch(BACKEND_URL+'/status');
