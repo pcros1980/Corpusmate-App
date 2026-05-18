@@ -679,7 +679,7 @@ html, body { height: 100%; background: var(--slate); color: var(--text); font-fa
         <span class="llm-header-corpus" id="llm-corpus-tag">All corpora</span>
       </div>
       <div class="llm-log" id="llm-log"></div>
-      <div class="llm-hint" id="llm-hint">100 free AI queries/day · Enter a question in the search bar above</div>
+      <div class="llm-hint" id="llm-hint">Search for a term above — then ask questions about what you find</div>
     </div>
 
   </div>
@@ -1085,16 +1085,73 @@ function tryAsk(question) {
   inp.value = question; sendLLM(question);
 }
 
+// ── SHARED STATE: last search results feed the LLM ────────────────────────
+let lastSearchData   = null;  // raw data from last search
+let lastSearchQuery  = null;  // the term that was searched
+let lastSearchTab    = null;  // which tab (concordance/collocations/etc)
+
+function buildContextFromResults() {
+  // Build a rich text context from the last search results for the LLM
+  if (!lastSearchData) return buildContext(lastSearchQuery || '');
+
+  const lines = [];
+  const q     = lastSearchQuery || '';
+
+  if (lastSearchTab === 'concordance' && lastSearchData.groups) {
+    lines.push(`Corpus concordance results for "${q}" (${lastSearchData.total} hits, ${lastSearchData.groups.length} patterns):\n`);
+    // Take up to 60 representative hits across groups
+    let count = 0;
+    for (const g of lastSearchData.groups) {
+      if (count >= 60) break;
+      for (const h of g.hits.slice(0, 3)) {
+        const left  = h.left.map(t=>t.w).join(' ');
+        const node  = h.node.map(t=>t.w).join(' ');
+        const right = h.right.map(t=>t.w).join(' ');
+        lines.push(`[${h.source}] … ${left} **${node}** ${right} …`);
+        count++;
+      }
+    }
+    // Add dispersion summary if available
+    if (lastSearchData.groups.length > 0) {
+      const sources = {};
+      lastSearchData.groups.forEach(g => g.hits.forEach(h => { sources[h.source] = (sources[h.source]||0)+1; }));
+      lines.push('\nFrequency by corpus: ' + Object.entries(sources).map(([k,v])=>`${k}: ${v}`).join(', '));
+    }
+
+  } else if (lastSearchTab === 'collocations' && lastSearchData.results) {
+    lines.push(`Collocation results for "${q}" (${lastSearchData.node_freq} occurrences, window ±${lastSearchData.window}):\n`);
+    lines.push('Top collocates by MI score:');
+    lastSearchData.results.slice(0, 30).forEach(r => lines.push(`  ${r.word} (freq: ${r.freq}, MI: ${r.mi})`));
+
+  } else if (lastSearchTab === 'ngrams' && lastSearchData.results) {
+    lines.push(`Most frequent ${lastSearchData.n}-grams containing "${q}":\n`);
+    lastSearchData.results.slice(0, 20).forEach(r => lines.push(`  "${r.ngram}" (${r.freq}×)`));
+
+  } else if (lastSearchTab === 'dispersion' && lastSearchData.by_corpus) {
+    lines.push(`Frequency of "${q}" per million tokens:\n`);
+    lines.push('By corpus:');
+    lastSearchData.by_corpus.forEach(r => lines.push(`  ${r.label}: ${r.hpm}/M (${r.hits} hits)`));
+    lines.push('\nBy discipline:');
+    lastSearchData.by_discipline.filter(r=>r.hits>0).slice(0,15).forEach(r => lines.push(`  ${r.label}: ${r.hpm}/M`));
+  }
+
+  return lines.join('\n');
+}
+
 // ── SEARCH ────────────────────────────────────────────────────────────────
 async function runSearch() {
   const q = document.getElementById('search-input').value.trim();
   if(!q || searchRunning) return;
-  document.getElementById('llm-panel').style.display = 'none';
+
+  // Show results area, keep LLM panel visible if already open
   document.getElementById('search-empty').style.display = 'none';
   document.getElementById('search-output').style.display = 'block';
   document.getElementById('search-output').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div>Searching…</div>';
   document.getElementById('search-go').disabled = true;
   searchRunning = true;
+  lastSearchQuery = q;
+  lastSearchTab   = activeSubtab;
+
   if(window.umami) umami.track('search', {tab:activeSubtab, q, corpus:activeCorpusValue});
   const discipline = document.getElementById('filter-discipline').value;
   const mode       = document.getElementById('filter-mode').value;
@@ -1104,19 +1161,27 @@ async function runSearch() {
     if(activeSubtab==='concordance'){
       params.set('limit','500'); params.set('sort', concSort);
       data = await(await fetch(BACKEND_URL+'/search/concordance?'+params)).json();
+      lastSearchData = data;
       renderConcordance(data, q);
     } else if(activeSubtab==='collocations'){
       params.set('window','3'); params.set('limit','40');
       data = await(await fetch(BACKEND_URL+'/search/collocations?'+params)).json();
+      lastSearchData = data;
       renderCollocations(data, q);
     } else if(activeSubtab==='ngrams'){
       params.set('n', activeN); params.set('limit','30');
       data = await(await fetch(BACKEND_URL+'/search/ngrams?'+params)).json();
+      lastSearchData = data;
       renderNgrams(data, q);
     } else {
       data = await(await fetch(BACKEND_URL+'/search/dispersion?'+params)).json();
+      lastSearchData = data;
       renderDispersion(data, q);
     }
+
+    // Show LLM panel with updated context hint after search
+    showLLMPanel(q);
+
   } catch(e) {
     document.getElementById('search-output').innerHTML = '<div class="notice">Search failed — backend may still be indexing. Try again in a moment.</div>';
   }
@@ -1124,11 +1189,39 @@ async function runSearch() {
   document.getElementById('search-go').disabled = false;
 }
 
+function showLLMPanel(q) {
+  const panel = document.getElementById('llm-panel');
+  panel.style.display = 'block';
+  document.getElementById('llm-corpus-tag').textContent = activeCorpusValue==='all' ? 'All corpora' : activeCorpusLabel;
+  // Update hint to reflect current search
+  const hint = document.getElementById('llm-hint');
+  if (hint && q) hint.textContent = `Ask about these "${q}" results — the LLM can see your corpus data`;
+}
+
 async function sendLLM(text) {
   if(!text) text = document.getElementById('search-input').value.trim();
   if(!text || llmRunning) return;
+
+  // If no search has been done yet, run a concordance search first then ask
+  if (!lastSearchData && currentMode === 'ask') {
+    // Extract key term from the question for background search
+    const term = extractSearchTerm(text);
+    if (term) {
+      lastSearchQuery = term;
+      lastSearchTab   = 'concordance';
+      try {
+        const params = new URLSearchParams({q: term, corpus: activeCorpusValue, discipline: 'all', mode: 'all', limit: '200', sort: 'freq'});
+        const data = await(await fetch(BACKEND_URL+'/search/concordance?'+params)).json();
+        lastSearchData = data;
+        // Show results in background
+        document.getElementById('search-empty').style.display = 'none';
+        document.getElementById('search-output').style.display = 'block';
+        renderConcordance(data, term);
+      } catch(e) {}
+    }
+  }
+
   document.getElementById('search-empty').style.display = 'none';
-  document.getElementById('search-output').style.display = 'none';
   const panel = document.getElementById('llm-panel');
   panel.style.display = 'block';
   document.getElementById('llm-corpus-tag').textContent = activeCorpusValue==='all' ? 'All corpora' : activeCorpusLabel;
@@ -1138,10 +1231,25 @@ async function sendLLM(text) {
   llmRunning = true;
   document.getElementById('search-go').disabled = true;
   if(window.umami) umami.track('llm_query', {corpus:activeCorpusValue});
-  await sendViaBackend(text, buildContext(text), typId, 1);
+
+  // Use results-based context if available, otherwise fall back to chunk sampling
+  const context = buildContextFromResults();
+  await sendViaBackend(text, context, typId, 1);
   llmRunning = false;
   document.getElementById('search-go').disabled = false;
 }
+
+function extractSearchTerm(question) {
+  // Pull quoted term first
+  const quoted = question.match(/["']([^"']{2,30})["']/);
+  if (quoted) return quoted[1];
+  // Strip question words and take first content word(s)
+  const stripped = question.replace(/^(how|what|why|when|where|which|who|does|do|is|are|can|could|would|should|explain|tell|describe|compare|give me|show me)\s+/i, '').trim();
+  const words = stripped.split(/\s+/).filter(w => w.length > 3 && !/^(does|this|that|with|from|have|been|they|their|about|into|more|also|used|using|word|phrase|term|language|corpus|text)$/i.test(w));
+  return words.slice(0, 2).join(' ') || null;
+}
+
+
 
 
 function hilite(text,q){
